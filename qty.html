@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Quantité</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background-color: var(--tg-theme-bg-color, #ffffff);
+      color: var(--tg-theme-text-color, #000000);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 32px 24px;
+      gap: 12px;
+    }
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+    p {
+      color: var(--tg-theme-hint-color, #888888);
+      font-size: 0.95rem;
+      text-align: center;
+    }
+    input {
+      font-size: 3rem;
+      font-weight: 700;
+      text-align: center;
+      width: 100%;
+      max-width: 280px;
+      padding: 16px 12px;
+      border: 2px solid var(--tg-theme-hint-color, #cccccc);
+      border-radius: 16px;
+      background: var(--tg-theme-secondary-bg-color, #f5f5f5);
+      color: var(--tg-theme-text-color, #000000);
+      outline: none;
+      margin-top: 12px;
+      -moz-appearance: textfield;
+    }
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button { -webkit-appearance: none; }
+    input:focus {
+      border-color: var(--tg-theme-button-color, #2196F3);
+    }
+    .unit {
+      font-size: 1rem;
+      color: var(--tg-theme-hint-color, #888888);
+      margin-top: -4px;
+    }
+  </style>
+</head>
+<body>
+  <h2>⚖️ Quantité</h2>
+  <p>Entrez la quantité transportée</p>
+  <input type="number" id="qty" inputmode="decimal" placeholder="47.5" step="0.5" min="0" autofocus>
+  <span class="unit">tonnes</span>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+
+    const input = document.getElementById('qty');
+
+    tg.MainButton.setText('✅  Confirmer').show();
+
+    tg.MainButton.onClick(function () {
+      const raw = input.value.replace(',', '.');
+      const qty = parseFloat(raw);
+      if (isNaN(qty) || qty <= 0) {
+        tg.showAlert('Veuillez entrer un nombre valide (ex: 47.5)');
+        return;
+      }
+      tg.sendData(String(qty));
+    });
+
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') tg.MainButton.click();
+    });
+  </script>
+</body>
+</html>
