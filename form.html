@@ -159,6 +159,51 @@
     .tonnes-row .field-input { font-size: 1.4rem; font-weight: 700; text-align: center; }
     .tonnes-unit { font-size: 1rem; font-weight: 600; color: var(--hint); white-space: nowrap; }
 
+    /* ── Photo ── */
+    .photo-label {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      min-height: 110px;
+      border: 2px dashed var(--hint);
+      border-radius: 12px;
+      background: var(--bg2);
+      cursor: pointer;
+      transition: border-color .15s;
+      -webkit-tap-highlight-color: transparent;
+      position: relative;
+      overflow: hidden;
+    }
+    .photo-label:active { border-color: var(--btn); }
+    .photo-label.has-photo { border-style: solid; border-color: var(--btn); }
+    .photo-label.error-photo { border-color: #ff3b30 !important; border-style: solid; }
+    .photo-label .ico-cam { font-size: 2rem; }
+    .photo-label .lbl-txt { font-size: 0.85rem; color: var(--hint); font-weight: 600; }
+    .photo-label .lbl-ok  { font-size: 0.8rem;  color: var(--btn);  font-weight: 700; display: none; }
+    .photo-label.has-photo .lbl-txt { display: none; }
+    .photo-label.has-photo .lbl-ok  { display: block; }
+    .photo-preview {
+      width: 100%; height: 160px;
+      object-fit: cover;
+      border-radius: 10px;
+      display: none;
+    }
+    .photo-preview.visible { display: block; }
+    .photo-spinner {
+      display: none;
+      width: 28px; height: 28px;
+      border: 3px solid var(--bg2);
+      border-top-color: var(--btn);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .photo-spinner.visible { display: block; }
+    #photo-input { display: none; }
+
     /* ── Error highlight ── */
     .field-input.error, .date-input.error { border-color: #ff3b30 !important; }
     .hv-error { border: 2px solid #ff3b30; border-radius: 12px; padding: 4px; margin-top: -4px; }
@@ -235,6 +280,20 @@
     <div class="err-msg" id="err-hv">⚠️ Sélectionnez un véhicule</div>
   </div>
 
+  <!-- Photo -->
+  <div class="card">
+    <div class="card-label">📷 Photo du bon</div>
+    <input id="photo-input" type="file" accept="image/*" capture="environment">
+    <label for="photo-input" class="photo-label" id="photo-label">
+      <div class="photo-spinner" id="photo-spinner"></div>
+      <img class="photo-preview" id="photo-preview" alt="">
+      <span class="ico-cam">📷</span>
+      <span class="lbl-txt">Appuyez pour prendre / choisir une photo</span>
+      <span class="lbl-ok">✅ Photo prête — appuyez pour changer</span>
+    </label>
+    <div class="err-msg" id="err-photo">⚠️ Photo requise</div>
+  </div>
+
   <!-- Quantité -->
   <div class="card">
     <div class="card-label">⚖️ Quantité</div>
@@ -251,7 +310,7 @@
 
     const params = new URLSearchParams(window.location.search);
 
-    /* ── Pre-fill simple fields ── */
+    /* ── Pre-fill ── */
     document.getElementById('bon').value    = params.get('bon')    || '';
     document.getElementById('day').value    = params.get('day')    || '';
     document.getElementById('month').value  = params.get('month')  || '';
@@ -271,7 +330,7 @@
     const hvList = ['HV-01','HV-02','HV-03','HV-04','HV-05',
                     'HV-06','HV-07','HV-08','HV-09','HV-10'];
     let currentHv = params.get('hv') || '';
-    const scroll = document.getElementById('hv-scroll');
+    const scroll  = document.getElementById('hv-scroll');
     hvList.forEach(hv => {
       const chip = document.createElement('div');
       chip.className = 'hv-chip' + (hv === currentHv ? ' active' : '');
@@ -283,37 +342,78 @@
       };
       scroll.appendChild(chip);
     });
-    /* Scroll selected chip into view */
     const activeChip = scroll.querySelector('.hv-chip.active');
     if (activeChip) activeChip.scrollIntoView({ inline: 'center', behavior: 'instant' });
 
-    /* ── Inline error helpers ── */
+    /* ── Photo upload (telegra.ph) ── */
+    let photoUrl     = '';
+    let uploadBusy   = false;
+    const photoInput   = document.getElementById('photo-input');
+    const photoLabel   = document.getElementById('photo-label');
+    const photoPreview = document.getElementById('photo-preview');
+    const photoSpinner = document.getElementById('photo-spinner');
+
+    photoInput.addEventListener('change', async () => {
+      const file = photoInput.files[0];
+      if (!file) return;
+
+      /* Show spinner, hide preview, lock confirm */
+      photoSpinner.classList.add('visible');
+      photoPreview.classList.remove('visible');
+      photoLabel.classList.remove('has-photo', 'error-photo');
+      showErr('err-photo', false);
+      uploadBusy = true;
+      tg.MainButton.disable ? tg.MainButton.disable() : tg.MainButton.setText('⏳ Upload…');
+
+      try {
+        const fd = new FormData();
+        fd.append('file', file, file.name || 'photo.jpg');
+        const res  = await fetch('https://telegra.ph/upload', { method: 'POST', body: fd });
+        const json = await res.json();
+        if (!Array.isArray(json) || !json[0]?.src) throw new Error('Upload failed');
+        photoUrl = 'https://telegra.ph' + json[0].src;
+
+        /* Show thumbnail */
+        photoPreview.src = photoUrl;
+        photoPreview.classList.add('visible');
+        photoLabel.classList.add('has-photo');
+        /* Hide spinner */
+        photoSpinner.classList.remove('visible');
+      } catch (e) {
+        photoUrl = '';
+        photoSpinner.classList.remove('visible');
+        photoLabel.classList.add('error-photo');
+        showErr('err-photo', true);
+        document.getElementById('err-photo').textContent = '⚠️ Échec upload — réessayez';
+      }
+
+      uploadBusy = false;
+      tg.MainButton.enable ? tg.MainButton.enable() : tg.MainButton.setText('✅  Confirmer');
+    });
+
+    /* ── Error helpers ── */
     function showErr(id, show) {
       document.getElementById(id).classList.toggle('visible', show);
     }
-    function setFieldErr(el, show) {
-      el.classList.toggle('error', show);
-    }
+    function setFieldErr(el, show) { el.classList.toggle('error', show); }
     function clearAll() {
       document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
       document.querySelectorAll('.err-msg').forEach(el => el.classList.remove('visible'));
       document.getElementById('hv-scroll').classList.remove('hv-error');
+      photoLabel.classList.remove('error-photo');
     }
 
-    /* Clear errors as user interacts */
     ['bon','day','month','year','tonnes'].forEach(id => {
-      const el = document.getElementById(id);
-      el.addEventListener('input', () => {
-        el.classList.remove('error');
-        const errId = id === 'tonnes' ? 'err-qty'
-                    : id === 'bon'    ? 'err-bon'
-                    : 'err-date';
+      document.getElementById(id).addEventListener('input', () => {
+        document.getElementById(id).classList.remove('error');
+        const errId = id === 'tonnes' ? 'err-qty' : id === 'bon' ? 'err-bon' : 'err-date';
         showErr(errId, false);
       });
     });
 
-    /* ── Validation & submit ── */
+    /* ── Validation ── */
     function validate() {
+      if (uploadBusy) return null;
       clearAll();
       let hasError = false;
 
@@ -321,50 +421,48 @@
       const bon   = bonEl.value.trim();
       if (!bon) { setFieldErr(bonEl, true); showErr('err-bon', true); hasError = true; }
 
-      const dayEl  = document.getElementById('day');
-      const monEl  = document.getElementById('month');
-      const yrEl   = document.getElementById('year');
-      const day    = parseInt(dayEl.value);
-      const month  = parseInt(monEl.value);
-      const year   = parseInt(yrEl.value);
-      const dateOk = day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 2024 && year <= 2099;
-      if (!dateOk) {
-        if (!day   || day   < 1  || day   > 31)   setFieldErr(dayEl, true);
-        if (!month || month < 1  || month > 12)   setFieldErr(monEl, true);
+      const dayEl = document.getElementById('day'),   monEl = document.getElementById('month'), yrEl = document.getElementById('year');
+      const day   = parseInt(dayEl.value), month = parseInt(monEl.value), year = parseInt(yrEl.value);
+      if (!(day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 2024 && year <= 2099)) {
+        if (!day   || day   < 1  || day   > 31)    setFieldErr(dayEl, true);
+        if (!month || month < 1  || month > 12)    setFieldErr(monEl, true);
         if (!year  || year  < 2024 || year > 2099) setFieldErr(yrEl,  true);
-        showErr('err-date', true);
-        hasError = true;
+        showErr('err-date', true); hasError = true;
       }
 
       if (!currentHv) {
         document.getElementById('hv-scroll').classList.add('hv-error');
-        showErr('err-hv', true);
-        hasError = true;
+        showErr('err-hv', true); hasError = true;
       }
 
       const tonEl  = document.getElementById('tonnes');
       const tonnes = parseFloat(String(tonEl.value).replace(',', '.'));
       if (isNaN(tonnes) || tonnes < 20000 || tonnes > 100000) {
-        setFieldErr(tonEl, true);
-        showErr('err-qty', true);
-        hasError = true;
+        setFieldErr(tonEl, true); showErr('err-qty', true); hasError = true;
+      }
+
+      if (!photoUrl) {
+        photoLabel.classList.add('error-photo');
+        document.getElementById('err-photo').textContent = '⚠️ Photo requise';
+        showErr('err-photo', true); hasError = true;
       }
 
       if (hasError) return null;
 
       return {
-        bon,
-        day, month, year,
-        shift:  currentShift,
-        hv:     currentHv,
+        bon, day, month, year,
+        shift:    currentShift,
+        hv:       currentHv,
         tonnes,
-        fid:    params.get('fid') || '',
-        mid:    params.get('mid') || ''
+        photoUrl,
+        fid:      params.get('fid') || '',
+        mid:      params.get('mid') || ''
       };
     }
 
     tg.MainButton.setText('✅  Confirmer').show();
     tg.MainButton.onClick(function () {
+      if (uploadBusy) return;
       const data = validate();
       if (!data) return;
       tg.sendData(JSON.stringify(data));
