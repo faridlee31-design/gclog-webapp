@@ -161,6 +161,16 @@
 
     /* ── Error highlight ── */
     .field-input.error, .date-input.error { border-color: #ff3b30 !important; }
+    .hv-error { border: 2px solid #ff3b30; border-radius: 12px; padding: 4px; margin-top: -4px; }
+    .err-msg {
+      font-size: 0.75rem;
+      color: #ff3b30;
+      font-weight: 600;
+      margin-top: 5px;
+      min-height: 0;
+      display: none;
+    }
+    .err-msg.visible { display: block; }
   </style>
 </head>
 <body>
@@ -175,6 +185,7 @@
     <div class="card-label">🎫 Numéro de bon</div>
     <input id="bon" class="field-input" type="text" inputmode="numeric"
            placeholder="ex : 00123" autocomplete="off">
+    <div class="err-msg" id="err-bon">⚠️ Numéro de bon requis</div>
   </div>
 
   <!-- Date -->
@@ -197,6 +208,7 @@
                min="2024" max="2099" placeholder="AAAA">
       </div>
     </div>
+    <div class="err-msg" id="err-date">⚠️ Date invalide</div>
   </div>
 
   <!-- Shift -->
@@ -220,14 +232,16 @@
   <div class="card">
     <div class="card-label">🚛 Véhicule</div>
     <div class="hv-scroll" id="hv-scroll"></div>
+    <div class="err-msg" id="err-hv">⚠️ Sélectionnez un véhicule</div>
   </div>
 
   <!-- Quantité -->
   <div class="card">
     <div class="card-label">⚖️ Quantité</div>
     <input id="tonnes" class="field-input" type="number"
-           inputmode="decimal" step="0.5" min="0" placeholder="ex : 47.5"
+           inputmode="numeric" min="20000" max="100000" placeholder="ex : 45000"
            style="font-size:1.4rem;font-weight:700;text-align:center;">
+    <div class="err-msg" id="err-qty">⚠️ Quantité entre 20 000 et 100 000</div>
   </div>
 
   <script>
@@ -273,36 +287,70 @@
     const activeChip = scroll.querySelector('.hv-chip.active');
     if (activeChip) activeChip.scrollIntoView({ inline: 'center', behavior: 'instant' });
 
-    /* ── Validation & submit ── */
-    function clearErrors() {
+    /* ── Inline error helpers ── */
+    function showErr(id, show) {
+      document.getElementById(id).classList.toggle('visible', show);
+    }
+    function setFieldErr(el, show) {
+      el.classList.toggle('error', show);
+    }
+    function clearAll() {
       document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
+      document.querySelectorAll('.err-msg').forEach(el => el.classList.remove('visible'));
+      document.getElementById('hv-scroll').classList.remove('hv-error');
     }
 
+    /* Clear errors as user interacts */
+    ['bon','day','month','year','tonnes'].forEach(id => {
+      const el = document.getElementById(id);
+      el.addEventListener('input', () => {
+        el.classList.remove('error');
+        const errId = id === 'tonnes' ? 'err-qty'
+                    : id === 'bon'    ? 'err-bon'
+                    : 'err-date';
+        showErr(errId, false);
+      });
+    });
+
+    /* ── Validation & submit ── */
     function validate() {
-      clearErrors();
-      let ok = true;
+      clearAll();
+      let hasError = false;
 
       const bonEl = document.getElementById('bon');
       const bon   = bonEl.value.trim();
-      if (!bon) { bonEl.classList.add('error'); tg.showAlert('Veuillez entrer le numéro de bon'); return null; }
+      if (!bon) { setFieldErr(bonEl, true); showErr('err-bon', true); hasError = true; }
 
-      const dayEl = document.getElementById('day');
-      const day   = parseInt(dayEl.value);
-      if (!day || day < 1 || day > 31) { dayEl.classList.add('error'); tg.showAlert('Jour invalide (1 – 31)'); return null; }
+      const dayEl  = document.getElementById('day');
+      const monEl  = document.getElementById('month');
+      const yrEl   = document.getElementById('year');
+      const day    = parseInt(dayEl.value);
+      const month  = parseInt(monEl.value);
+      const year   = parseInt(yrEl.value);
+      const dateOk = day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 2024 && year <= 2099;
+      if (!dateOk) {
+        if (!day   || day   < 1  || day   > 31)   setFieldErr(dayEl, true);
+        if (!month || month < 1  || month > 12)   setFieldErr(monEl, true);
+        if (!year  || year  < 2024 || year > 2099) setFieldErr(yrEl,  true);
+        showErr('err-date', true);
+        hasError = true;
+      }
 
-      const monEl = document.getElementById('month');
-      const month = parseInt(monEl.value);
-      if (!month || month < 1 || month > 12) { monEl.classList.add('error'); tg.showAlert('Mois invalide (1 – 12)'); return null; }
-
-      const yrEl = document.getElementById('year');
-      const year  = parseInt(yrEl.value);
-      if (!year || year < 2024 || year > 2099) { yrEl.classList.add('error'); tg.showAlert('Année invalide'); return null; }
-
-      if (!currentHv) { tg.showAlert('Veuillez sélectionner un véhicule'); return null; }
+      if (!currentHv) {
+        document.getElementById('hv-scroll').classList.add('hv-error');
+        showErr('err-hv', true);
+        hasError = true;
+      }
 
       const tonEl  = document.getElementById('tonnes');
-      const tonnes = parseFloat(tonEl.value.replace(',', '.'));
-      if (isNaN(tonnes) || tonnes <= 0) { tonEl.classList.add('error'); tg.showAlert('Quantité invalide'); return null; }
+      const tonnes = parseFloat(String(tonEl.value).replace(',', '.'));
+      if (isNaN(tonnes) || tonnes < 20000 || tonnes > 100000) {
+        setFieldErr(tonEl, true);
+        showErr('err-qty', true);
+        hasError = true;
+      }
+
+      if (hasError) return null;
 
       return {
         bon,
