@@ -15,7 +15,6 @@
       --hint:  var(--tg-theme-hint-color, #8e8e93);
       --btn:   var(--tg-theme-button-color, #007aff);
       --btnT:  var(--tg-theme-button-text-color, #ffffff);
-      --link:  var(--tg-theme-link-color, #007aff);
     }
 
     body {
@@ -26,194 +25,81 @@
       padding: 12px 16px 90px;
     }
 
-    /* ── Header ── */
-    .header {
-      text-align: center;
-      padding: 16px 0 20px;
-    }
+    .header { text-align: center; padding: 16px 0 20px; }
     .header .icon { font-size: 2.2rem; margin-bottom: 6px; }
     .header h1 { font-size: 1.25rem; font-weight: 700; }
     .header p  { font-size: 0.82rem; color: var(--hint); margin-top: 3px; }
 
-    /* ── Card ── */
-    .card {
-      background: var(--bg);
-      border-radius: 14px;
-      padding: 14px 16px;
-      margin-bottom: 10px;
-    }
+    .card { background: var(--bg); border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; }
     .card-label {
-      font-size: 0.68rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: var(--hint);
-      margin-bottom: 10px;
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.07em; color: var(--hint); margin-bottom: 10px;
     }
 
-    /* ── Generic input ── */
     .field-input {
-      width: 100%;
-      padding: 11px 13px;
-      border: 1.5px solid transparent;
-      border-radius: 10px;
-      background: var(--bg2);
-      color: var(--text);
-      font-size: 1.05rem;
-      font-weight: 600;
-      outline: none;
-      transition: border-color .15s;
-      -moz-appearance: textfield;
+      width: 100%; padding: 11px 13px;
+      border: 1.5px solid transparent; border-radius: 10px;
+      background: var(--bg2); color: var(--text);
+      font-size: 1.05rem; font-weight: 600; outline: none;
+      transition: border-color .15s; -moz-appearance: textfield;
     }
     .field-input::-webkit-inner-spin-button,
     .field-input::-webkit-outer-spin-button { -webkit-appearance: none; }
     .field-input:focus { border-color: var(--btn); }
     .field-input::placeholder { color: var(--hint); font-weight: 400; }
+    .field-input.error { border-color: #ff3b30 !important; }
 
-    /* ── Date row ── */
+    /* Date */
     .date-row { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 8px; }
     .date-cell { display: flex; flex-direction: column; gap: 5px; }
     .date-cell-lbl {
-      font-size: 0.68rem;
-      text-align: center;
-      color: var(--hint);
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      font-size: 0.68rem; text-align: center; color: var(--hint);
+      font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
     }
     .date-input {
-      width: 100%;
-      padding: 10px 4px;
-      border: 1.5px solid transparent;
-      border-radius: 10px;
-      background: var(--bg2);
-      color: var(--text);
-      font-size: 1.2rem;
-      font-weight: 700;
-      text-align: center;
-      outline: none;
+      width: 100%; padding: 10px 4px;
+      border: 1.5px solid transparent; border-radius: 10px;
+      background: var(--bg2); color: var(--text);
+      font-size: 1.2rem; font-weight: 700; text-align: center; outline: none;
       -moz-appearance: textfield;
     }
     .date-input::-webkit-inner-spin-button,
     .date-input::-webkit-outer-spin-button { -webkit-appearance: none; }
     .date-input:focus { border-color: var(--btn); }
+    .date-input.error { border-color: #ff3b30 !important; }
 
-    /* ── Shift toggle ── */
+    /* Shift */
     .shift-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .shift-btn {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      padding: 12px 8px;
-      border: 2px solid transparent;
-      border-radius: 12px;
-      background: var(--bg2);
-      color: var(--hint);
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all .15s;
-      -webkit-tap-highlight-color: transparent;
-      user-select: none;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      padding: 12px 8px; border: 2px solid transparent; border-radius: 12px;
+      background: var(--bg2); color: var(--hint);
+      font-size: 0.85rem; font-weight: 600; cursor: pointer;
+      transition: all .15s; -webkit-tap-highlight-color: transparent; user-select: none;
     }
     .shift-btn .ico { font-size: 1.6rem; }
-    .shift-btn.active {
-      background: var(--btn);
-      color: var(--btnT);
-      border-color: var(--btn);
-    }
+    .shift-btn.active { background: var(--btn); color: var(--btnT); border-color: var(--btn); }
 
-    /* ── HV chips ── */
+    /* HV chips */
     .hv-scroll {
-      display: flex;
-      gap: 7px;
-      overflow-x: auto;
-      padding-bottom: 4px;
-      scrollbar-width: none;
-      -ms-overflow-style: none;
+      display: flex; gap: 7px; overflow-x: auto; padding-bottom: 4px;
+      scrollbar-width: none; -ms-overflow-style: none;
     }
     .hv-scroll::-webkit-scrollbar { display: none; }
     .hv-chip {
-      flex-shrink: 0;
-      padding: 8px 14px;
-      border-radius: 20px;
-      background: var(--bg2);
-      color: var(--hint);
-      font-size: 0.9rem;
-      font-weight: 700;
-      cursor: pointer;
-      border: 2px solid transparent;
-      transition: all .12s;
-      -webkit-tap-highlight-color: transparent;
-      user-select: none;
+      flex-shrink: 0; padding: 8px 14px; border-radius: 20px;
+      background: var(--bg2); color: var(--hint);
+      font-size: 0.9rem; font-weight: 700; cursor: pointer;
+      border: 2px solid transparent; transition: all .12s;
+      -webkit-tap-highlight-color: transparent; user-select: none;
     }
-    .hv-chip.active {
-      background: var(--btn);
-      color: var(--btnT);
-      border-color: var(--btn);
-    }
-
-    /* ── Tonnes ── */
-    .tonnes-row { display: flex; align-items: center; gap: 10px; }
-    .tonnes-row .field-input { font-size: 1.4rem; font-weight: 700; text-align: center; }
-    .tonnes-unit { font-size: 1rem; font-weight: 600; color: var(--hint); white-space: nowrap; }
-
-    /* ── Photo ── */
-    .photo-label {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      width: 100%;
-      min-height: 110px;
-      border: 2px dashed var(--hint);
-      border-radius: 12px;
-      background: var(--bg2);
-      cursor: pointer;
-      transition: border-color .15s;
-      -webkit-tap-highlight-color: transparent;
-      position: relative;
-      overflow: hidden;
-    }
-    .photo-label:active { border-color: var(--btn); }
-    .photo-label.has-photo { border-style: solid; border-color: var(--btn); }
-    .photo-label.error-photo { border-color: #ff3b30 !important; border-style: solid; }
-    .photo-label .ico-cam { font-size: 2rem; }
-    .photo-label .lbl-txt { font-size: 0.85rem; color: var(--hint); font-weight: 600; }
-    .photo-label .lbl-ok  { font-size: 0.8rem;  color: var(--btn);  font-weight: 700; display: none; }
-    .photo-label.has-photo .lbl-txt { display: none; }
-    .photo-label.has-photo .lbl-ok  { display: block; }
-    .photo-preview {
-      width: 100%; height: 160px;
-      object-fit: cover;
-      border-radius: 10px;
-      display: none;
-    }
-    .photo-preview.visible { display: block; }
-    .photo-spinner {
-      display: none;
-      width: 28px; height: 28px;
-      border: 3px solid var(--bg2);
-      border-top-color: var(--btn);
-      border-radius: 50%;
-      animation: spin .7s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .photo-spinner.visible { display: block; }
-    #photo-input { display: none; }
-
-    /* ── Error highlight ── */
-    .field-input.error, .date-input.error { border-color: #ff3b30 !important; }
+    .hv-chip.active { background: var(--btn); color: var(--btnT); border-color: var(--btn); }
     .hv-error { border: 2px solid #ff3b30; border-radius: 12px; padding: 4px; margin-top: -4px; }
+
+    /* Erreurs inline */
     .err-msg {
-      font-size: 0.75rem;
-      color: #ff3b30;
-      font-weight: 600;
-      margin-top: 5px;
-      min-height: 0;
-      display: none;
+      font-size: 0.75rem; color: #ff3b30; font-weight: 600;
+      margin-top: 5px; display: none;
     }
     .err-msg.visible { display: block; }
   </style>
@@ -239,18 +125,15 @@
     <div class="date-row">
       <div class="date-cell">
         <div class="date-cell-lbl">Jour</div>
-        <input id="day" class="date-input" type="number" inputmode="numeric"
-               min="1" max="31" placeholder="JJ">
+        <input id="day" class="date-input" type="number" inputmode="numeric" min="1" max="31" placeholder="JJ">
       </div>
       <div class="date-cell">
         <div class="date-cell-lbl">Mois</div>
-        <input id="month" class="date-input" type="number" inputmode="numeric"
-               min="1" max="12" placeholder="MM">
+        <input id="month" class="date-input" type="number" inputmode="numeric" min="1" max="12" placeholder="MM">
       </div>
       <div class="date-cell">
         <div class="date-cell-lbl">Année</div>
-        <input id="year" class="date-input" type="number" inputmode="numeric"
-               min="2024" max="2099" placeholder="AAAA">
+        <input id="year" class="date-input" type="number" inputmode="numeric" min="2024" max="2099" placeholder="AAAA">
       </div>
     </div>
     <div class="err-msg" id="err-date">⚠️ Date invalide</div>
@@ -280,25 +163,11 @@
     <div class="err-msg" id="err-hv">⚠️ Sélectionnez un véhicule</div>
   </div>
 
-  <!-- Photo -->
-  <div class="card">
-    <div class="card-label">📷 Photo du bon</div>
-    <input id="photo-input" type="file" accept="image/*" capture="environment">
-    <label for="photo-input" class="photo-label" id="photo-label">
-      <div class="photo-spinner" id="photo-spinner"></div>
-      <img class="photo-preview" id="photo-preview" alt="">
-      <span class="ico-cam">📷</span>
-      <span class="lbl-txt">Appuyez pour prendre / choisir une photo</span>
-      <span class="lbl-ok">✅ Photo prête — appuyez pour changer</span>
-    </label>
-    <div class="err-msg" id="err-photo">⚠️ Photo requise</div>
-  </div>
-
   <!-- Quantité -->
   <div class="card">
     <div class="card-label">⚖️ Quantité</div>
-    <input id="tonnes" class="field-input" type="number"
-           inputmode="numeric" min="20000" max="100000" placeholder="ex : 45000"
+    <input id="tonnes" class="field-input" type="number" inputmode="numeric"
+           min="20000" max="100000" placeholder="ex : 45000"
            style="font-size:1.4rem;font-weight:700;text-align:center;">
     <div class="err-msg" id="err-qty">⚠️ Quantité entre 20 000 et 100 000</div>
   </div>
@@ -310,14 +179,13 @@
 
     const params = new URLSearchParams(window.location.search);
 
-    /* ── Pre-fill ── */
     document.getElementById('bon').value    = params.get('bon')    || '';
     document.getElementById('day').value    = params.get('day')    || '';
     document.getElementById('month').value  = params.get('month')  || '';
     document.getElementById('year').value   = params.get('year')   || '';
     document.getElementById('tonnes').value = params.get('tonnes') || '';
 
-    /* ── Shift ── */
+    /* Shift */
     let currentShift = params.get('shift') || 'day';
     function setShift(val) {
       currentShift = val;
@@ -326,7 +194,7 @@
     }
     setShift(currentShift);
 
-    /* ── HV chips ── */
+    /* HV chips */
     const hvList = ['HV-01','HV-02','HV-03','HV-04','HV-05',
                     'HV-06','HV-07','HV-08','HV-09','HV-10'];
     let currentHv = params.get('hv') || '';
@@ -339,100 +207,23 @@
         currentHv = hv;
         scroll.querySelectorAll('.hv-chip').forEach(c =>
           c.classList.toggle('active', c.textContent === hv));
+        scroll.querySelector('.hv-chip.active')
+              ?.scrollIntoView({ inline: 'center', behavior: 'smooth' });
+        document.getElementById('hv-scroll').classList.remove('hv-error');
+        showErr('err-hv', false);
       };
       scroll.appendChild(chip);
     });
     const activeChip = scroll.querySelector('.hv-chip.active');
     if (activeChip) activeChip.scrollIntoView({ inline: 'center', behavior: 'instant' });
 
-    /* ── Photo upload (n8n webhook) ── */
-    const uploadWebhookUrl = decodeURIComponent(params.get('wu') || '');
-    let photoUrl     = '';
-    let uploadBusy   = false;
-    const photoInput   = document.getElementById('photo-input');
-    const photoLabel   = document.getElementById('photo-label');
-    const photoPreview = document.getElementById('photo-preview');
-    const photoSpinner = document.getElementById('photo-spinner');
-
-    /* Compress image via Canvas → base64 JPEG */
-    function compressImage(file, maxW, maxH, quality) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onerror = reject;
-        reader.onload = e => {
-          const img = new Image();
-          img.onerror = reject;
-          img.onload = () => {
-            let w = img.width, h = img.height;
-            if (w > maxW || h > maxH) {
-              const ratio = Math.min(maxW / w, maxH / h);
-              w = Math.round(w * ratio);
-              h = Math.round(h * ratio);
-            }
-            const canvas = document.createElement('canvas');
-            canvas.width = w; canvas.height = h;
-            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-            const dataUrl = canvas.toDataURL('image/jpeg', quality);
-            resolve(dataUrl.split(',')[1]); /* base64 only */
-          };
-          img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-      });
-    }
-
-    photoInput.addEventListener('change', async () => {
-      const file = photoInput.files[0];
-      if (!file) return;
-
-      photoSpinner.classList.add('visible');
-      photoPreview.classList.remove('visible');
-      photoLabel.classList.remove('has-photo', 'error-photo');
-      showErr('err-photo', false);
-      uploadBusy = true;
-      tg.MainButton.setText('⏳ Upload…');
-
-      try {
-        const base64 = await compressImage(file, 1400, 1050, 0.78);
-        const uploadKey = Date.now().toString(36) + Math.random().toString(36).slice(2);
-
-        const res  = await fetch(uploadWebhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ uploadKey, imageBase64: base64 })
-        });
-        const json = await res.json();
-        if (!json.ok) throw new Error('Upload rejected');
-
-        photoUrl = json.id; /* UUID stocké dans n8n staticData */
-
-        /* Aperçu local (pas besoin d'URL externe) */
-        photoPreview.src = 'data:image/jpeg;base64,' + base64;
-        photoPreview.classList.add('visible');
-        photoLabel.classList.add('has-photo');
-        photoSpinner.classList.remove('visible');
-      } catch (e) {
-        photoUrl = '';
-        photoSpinner.classList.remove('visible');
-        photoLabel.classList.add('error-photo');
-        document.getElementById('err-photo').textContent = '⚠️ Échec upload — réessayez';
-        showErr('err-photo', true);
-      }
-
-      uploadBusy = false;
-      tg.MainButton.setText('✅  Confirmer');
-    });
-
-    /* ── Error helpers ── */
-    function showErr(id, show) {
-      document.getElementById(id).classList.toggle('visible', show);
-    }
+    /* Erreurs */
+    function showErr(id, show) { document.getElementById(id).classList.toggle('visible', show); }
     function setFieldErr(el, show) { el.classList.toggle('error', show); }
     function clearAll() {
       document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
       document.querySelectorAll('.err-msg').forEach(el => el.classList.remove('visible'));
       document.getElementById('hv-scroll').classList.remove('hv-error');
-      photoLabel.classList.remove('error-photo');
     }
 
     ['bon','day','month','year','tonnes'].forEach(id => {
@@ -443,21 +234,19 @@
       });
     });
 
-    /* ── Validation ── */
+    /* Validation */
     function validate() {
-      if (uploadBusy) return null;
       clearAll();
       let hasError = false;
 
       const bonEl = document.getElementById('bon');
-      const bon   = bonEl.value.trim();
-      if (!bon) { setFieldErr(bonEl, true); showErr('err-bon', true); hasError = true; }
+      if (!bonEl.value.trim()) { setFieldErr(bonEl, true); showErr('err-bon', true); hasError = true; }
 
-      const dayEl = document.getElementById('day'),   monEl = document.getElementById('month'), yrEl = document.getElementById('year');
-      const day   = parseInt(dayEl.value), month = parseInt(monEl.value), year = parseInt(yrEl.value);
+      const dayEl = document.getElementById('day'), monEl = document.getElementById('month'), yrEl = document.getElementById('year');
+      const day = parseInt(dayEl.value), month = parseInt(monEl.value), year = parseInt(yrEl.value);
       if (!(day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 2024 && year <= 2099)) {
-        if (!day   || day   < 1  || day   > 31)    setFieldErr(dayEl, true);
-        if (!month || month < 1  || month > 12)    setFieldErr(monEl, true);
+        if (!day   || day   < 1   || day   > 31)   setFieldErr(dayEl, true);
+        if (!month || month < 1   || month > 12)   setFieldErr(monEl, true);
         if (!year  || year  < 2024 || year > 2099) setFieldErr(yrEl,  true);
         showErr('err-date', true); hasError = true;
       }
@@ -473,28 +262,21 @@
         setFieldErr(tonEl, true); showErr('err-qty', true); hasError = true;
       }
 
-      if (!photoUrl) {
-        photoLabel.classList.add('error-photo');
-        document.getElementById('err-photo').textContent = '⚠️ Photo requise';
-        showErr('err-photo', true); hasError = true;
-      }
-
       if (hasError) return null;
 
       return {
-        bon, day, month, year,
-        shift:    currentShift,
-        hv:       currentHv,
+        bon:   bonEl.value.trim(),
+        day, month, year,
+        shift: currentShift,
+        hv:    currentHv,
         tonnes,
-        photoUrl,
-        fid:      params.get('fid') || '',
-        mid:      params.get('mid') || ''
+        fid:   params.get('fid') || '',
+        mid:   params.get('mid') || ''
       };
     }
 
     tg.MainButton.setText('✅  Confirmer').show();
     tg.MainButton.onClick(function () {
-      if (uploadBusy) return;
       const data = validate();
       if (!data) return;
       tg.sendData(JSON.stringify(data));
