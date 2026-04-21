@@ -199,9 +199,9 @@
     </div>
   </div>
 
-  <!-- Vacation -->
+  <!-- Shift -->
   <div class="card">
-    <div class="card-label">⏰ Vacation</div>
+    <div class="card-label">⏰ Shift</div>
     <div class="shift-row">
       <div class="shift-btn active" id="btn-day" onclick="setShift('day')">
         <span class="ico">☀️</span>
@@ -222,14 +222,12 @@
     <div class="hv-scroll" id="hv-scroll"></div>
   </div>
 
-  <!-- Tonnage -->
+  <!-- Quantité -->
   <div class="card">
-    <div class="card-label">⚖️ Tonnage</div>
-    <div class="tonnes-row">
-      <input id="tonnes" class="field-input" type="number"
-             inputmode="decimal" step="0.5" min="0" placeholder="47.5">
-      <span class="tonnes-unit">tonnes</span>
-    </div>
+    <div class="card-label">⚖️ Quantité</div>
+    <input id="tonnes" class="field-input" type="number"
+           inputmode="decimal" step="0.5" min="0" placeholder="ex : 47.5"
+           style="font-size:1.4rem;font-weight:700;text-align:center;">
   </div>
 
   <script>
@@ -258,7 +256,7 @@
     /* ── HV chips ── */
     const hvList = ['HV-01','HV-02','HV-03','HV-04','HV-05',
                     'HV-06','HV-07','HV-08','HV-09','HV-10'];
-    let currentHv = params.get('hv') || 'HV-01';
+    let currentHv = params.get('hv') || '';
     const scroll = document.getElementById('hv-scroll');
     hvList.forEach(hv => {
       const chip = document.createElement('div');
@@ -300,9 +298,11 @@
       const year  = parseInt(yrEl.value);
       if (!year || year < 2024 || year > 2099) { yrEl.classList.add('error'); tg.showAlert('Année invalide'); return null; }
 
+      if (!currentHv) { tg.showAlert('Veuillez sélectionner un véhicule'); return null; }
+
       const tonEl  = document.getElementById('tonnes');
       const tonnes = parseFloat(tonEl.value.replace(',', '.'));
-      if (isNaN(tonnes) || tonnes <= 0) { tonEl.classList.add('error'); tg.showAlert('Tonnage invalide'); return null; }
+      if (isNaN(tonnes) || tonnes <= 0) { tonEl.classList.add('error'); tg.showAlert('Quantité invalide'); return null; }
 
       return {
         bon,
