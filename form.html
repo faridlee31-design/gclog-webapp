@@ -345,7 +345,8 @@
     const activeChip = scroll.querySelector('.hv-chip.active');
     if (activeChip) activeChip.scrollIntoView({ inline: 'center', behavior: 'instant' });
 
-    /* ── Photo upload (telegra.ph) ── */
+    /* ── Photo upload (n8n webhook) ── */
+    const uploadWebhookUrl = decodeURIComponent(params.get('wu') || '');
     let photoUrl     = '';
     let uploadBusy   = false;
     const photoInput   = document.getElementById('photo-input');
@@ -353,42 +354,73 @@
     const photoPreview = document.getElementById('photo-preview');
     const photoSpinner = document.getElementById('photo-spinner');
 
+    /* Compress image via Canvas → base64 JPEG */
+    function compressImage(file, maxW, maxH, quality) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = reject;
+        reader.onload = e => {
+          const img = new Image();
+          img.onerror = reject;
+          img.onload = () => {
+            let w = img.width, h = img.height;
+            if (w > maxW || h > maxH) {
+              const ratio = Math.min(maxW / w, maxH / h);
+              w = Math.round(w * ratio);
+              h = Math.round(h * ratio);
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            const dataUrl = canvas.toDataURL('image/jpeg', quality);
+            resolve(dataUrl.split(',')[1]); /* base64 only */
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
     photoInput.addEventListener('change', async () => {
       const file = photoInput.files[0];
       if (!file) return;
 
-      /* Show spinner, hide preview, lock confirm */
       photoSpinner.classList.add('visible');
       photoPreview.classList.remove('visible');
       photoLabel.classList.remove('has-photo', 'error-photo');
       showErr('err-photo', false);
       uploadBusy = true;
-      tg.MainButton.disable ? tg.MainButton.disable() : tg.MainButton.setText('⏳ Upload…');
+      tg.MainButton.setText('⏳ Upload…');
 
       try {
-        const fd = new FormData();
-        fd.append('file', file, file.name || 'photo.jpg');
-        const res  = await fetch('https://telegra.ph/upload', { method: 'POST', body: fd });
-        const json = await res.json();
-        if (!Array.isArray(json) || !json[0]?.src) throw new Error('Upload failed');
-        photoUrl = 'https://telegra.ph' + json[0].src;
+        const base64 = await compressImage(file, 1400, 1050, 0.78);
+        const uploadKey = Date.now().toString(36) + Math.random().toString(36).slice(2);
 
-        /* Show thumbnail */
-        photoPreview.src = photoUrl;
+        const res  = await fetch(uploadWebhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uploadKey, imageBase64: base64 })
+        });
+        const json = await res.json();
+        if (!json.ok) throw new Error('Upload rejected');
+
+        photoUrl = json.id; /* UUID stocké dans n8n staticData */
+
+        /* Aperçu local (pas besoin d'URL externe) */
+        photoPreview.src = 'data:image/jpeg;base64,' + base64;
         photoPreview.classList.add('visible');
         photoLabel.classList.add('has-photo');
-        /* Hide spinner */
         photoSpinner.classList.remove('visible');
       } catch (e) {
         photoUrl = '';
         photoSpinner.classList.remove('visible');
         photoLabel.classList.add('error-photo');
-        showErr('err-photo', true);
         document.getElementById('err-photo').textContent = '⚠️ Échec upload — réessayez';
+        showErr('err-photo', true);
       }
 
       uploadBusy = false;
-      tg.MainButton.enable ? tg.MainButton.enable() : tg.MainButton.setText('✅  Confirmer');
+      tg.MainButton.setText('✅  Confirmer');
     });
 
     /* ── Error helpers ── */
