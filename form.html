@@ -49,6 +49,17 @@
     .field-input::placeholder { color: var(--hint); font-weight: 400; }
     .field-input.error { border-color: #ff3b30 !important; }
 
+    select.field-input {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background-image: linear-gradient(45deg, transparent 50%, var(--hint) 50%), linear-gradient(135deg, var(--hint) 50%, transparent 50%);
+      background-position: calc(100% - 18px) calc(50% - 3px), calc(100% - 12px) calc(50% - 3px);
+      background-size: 6px 6px, 6px 6px;
+      background-repeat: no-repeat;
+      padding-right: 34px;
+    }
+
     /* Date */
     .date-row { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 8px; }
     .date-cell { display: flex; flex-direction: column; gap: 5px; }
@@ -111,7 +122,6 @@
     <p>Vérifiez et complétez les informations</p>
   </div>
 
-  <!-- N° de Bon -->
   <div class="card">
     <div class="card-label">🎫 Numéro de bon</div>
     <input id="bon" class="field-input" type="text" inputmode="numeric"
@@ -119,7 +129,6 @@
     <div class="err-msg" id="err-bon">⚠️ Numéro de bon requis</div>
   </div>
 
-  <!-- Date -->
   <div class="card">
     <div class="card-label">📅 Date</div>
     <div class="date-row">
@@ -139,7 +148,6 @@
     <div class="err-msg" id="err-date">⚠️ Date invalide</div>
   </div>
 
-  <!-- Shift -->
   <div class="card">
     <div class="card-label">⏰ Shift</div>
     <div class="shift-row">
@@ -156,14 +164,26 @@
     </div>
   </div>
 
-  <!-- Véhicule -->
   <div class="card">
     <div class="card-label">🚛 Véhicule</div>
     <div class="hv-scroll" id="hv-scroll"></div>
     <div class="err-msg" id="err-hv">⚠️ Sélectionnez un véhicule</div>
   </div>
 
-  <!-- Quantité -->
+  <div class="card">
+    <div class="card-label">🕐 Heure départ mine</div>
+    <input id="depart_mine" class="field-input" type="time">
+    <div class="err-msg" id="err-depart">⚠️ Heure de départ requise</div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">👤 Chauffeur</div>
+    <select id="chauffeur" class="field-input">
+      <option value="">Sélectionnez un chauffeur</option>
+    </select>
+    <div class="err-msg" id="err-chauffeur">⚠️ Sélectionnez un chauffeur</div>
+  </div>
+
   <div class="card">
     <div class="card-label">⚖️ Quantité</div>
     <input id="tonnes" class="field-input" type="number" inputmode="numeric"
@@ -179,13 +199,35 @@
 
     const params = new URLSearchParams(window.location.search);
 
-    document.getElementById('bon').value    = params.get('bon')    || '';
-    document.getElementById('day').value    = params.get('day')    || '';
-    document.getElementById('month').value  = params.get('month')  || '';
-    document.getElementById('year').value   = params.get('year')   || '';
-    document.getElementById('tonnes').value = params.get('tonnes') || '';
+    document.getElementById('bon').value         = params.get('bon') || '';
+    document.getElementById('day').value         = params.get('day') || '';
+    document.getElementById('month').value       = params.get('month') || '';
+    document.getElementById('year').value        = params.get('year') || '';
+    document.getElementById('tonnes').value      = params.get('tonnes') || '';
+    document.getElementById('depart_mine').value = params.get('depart_mine') || '';
 
-    /* Shift */
+    const chauffeurSelect = document.getElementById('chauffeur');
+    const driversParam = params.get('drivers') || '';
+    let drivers = [];
+
+    try {
+      drivers = JSON.parse(decodeURIComponent(driversParam));
+      if (!Array.isArray(drivers)) drivers = [];
+    } catch (e) {
+      drivers = [];
+    }
+
+    drivers
+      .filter(name => typeof name === 'string' && name.trim())
+      .forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name.trim();
+        opt.textContent = name.trim();
+        chauffeurSelect.appendChild(opt);
+      });
+
+    chauffeurSelect.value = params.get('chauffeur') || '';
+
     let currentShift = params.get('shift') || 'day';
     function setShift(val) {
       currentShift = val;
@@ -194,9 +236,7 @@
     }
     setShift(currentShift);
 
-    /* HV chips */
-    const hvList = ['HV-01','HV-02','HV-03','HV-04','HV-05',
-                    'HV-06','HV-07','HV-08','HV-09','HV-10'];
+    const hvList = ['HV-01','HV-02','HV-03','HV-04','HV-05','HV-06','HV-07','HV-08','HV-09','HV-10'];
     let currentHv = params.get('hv') || '';
     const scroll  = document.getElementById('hv-scroll');
     hvList.forEach(hv => {
@@ -205,10 +245,8 @@
       chip.textContent = hv;
       chip.onclick = () => {
         currentHv = hv;
-        scroll.querySelectorAll('.hv-chip').forEach(c =>
-          c.classList.toggle('active', c.textContent === hv));
-        scroll.querySelector('.hv-chip.active')
-              ?.scrollIntoView({ inline: 'center', behavior: 'smooth' });
+        scroll.querySelectorAll('.hv-chip').forEach(c => c.classList.toggle('active', c.textContent === hv));
+        scroll.querySelector('.hv-chip.active')?.scrollIntoView({ inline: 'center', behavior: 'smooth' });
         document.getElementById('hv-scroll').classList.remove('hv-error');
         showErr('err-hv', false);
       };
@@ -217,7 +255,6 @@
     const activeChip = scroll.querySelector('.hv-chip.active');
     if (activeChip) activeChip.scrollIntoView({ inline: 'center', behavior: 'instant' });
 
-    /* Erreurs */
     function showErr(id, show) { document.getElementById(id).classList.toggle('visible', show); }
     function setFieldErr(el, show) { el.classList.toggle('error', show); }
     function clearAll() {
@@ -226,52 +263,87 @@
       document.getElementById('hv-scroll').classList.remove('hv-error');
     }
 
-    ['bon','day','month','year','tonnes'].forEach(id => {
+    ['bon','day','month','year','tonnes','depart_mine'].forEach(id => {
       document.getElementById(id).addEventListener('input', () => {
         document.getElementById(id).classList.remove('error');
-        const errId = id === 'tonnes' ? 'err-qty' : id === 'bon' ? 'err-bon' : 'err-date';
+        const errId = id === 'tonnes' ? 'err-qty'
+          : id === 'bon' ? 'err-bon'
+          : id === 'depart_mine' ? 'err-depart'
+          : 'err-date';
         showErr(errId, false);
       });
     });
 
-    /* Validation */
+    chauffeurSelect.addEventListener('change', () => {
+      chauffeurSelect.classList.remove('error');
+      showErr('err-chauffeur', false);
+    });
+
     function validate() {
       clearAll();
       let hasError = false;
 
       const bonEl = document.getElementById('bon');
-      if (!bonEl.value.trim()) { setFieldErr(bonEl, true); showErr('err-bon', true); hasError = true; }
+      if (!bonEl.value.trim()) {
+        setFieldErr(bonEl, true);
+        showErr('err-bon', true);
+        hasError = true;
+      }
 
-      const dayEl = document.getElementById('day'), monEl = document.getElementById('month'), yrEl = document.getElementById('year');
-      const day = parseInt(dayEl.value), month = parseInt(monEl.value), year = parseInt(yrEl.value);
+      const dayEl = document.getElementById('day');
+      const monEl = document.getElementById('month');
+      const yrEl  = document.getElementById('year');
+      const day   = parseInt(dayEl.value, 10);
+      const month = parseInt(monEl.value, 10);
+      const year  = parseInt(yrEl.value, 10);
       if (!(day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 2024 && year <= 2099)) {
-        if (!day   || day   < 1   || day   > 31)   setFieldErr(dayEl, true);
-        if (!month || month < 1   || month > 12)   setFieldErr(monEl, true);
-        if (!year  || year  < 2024 || year > 2099) setFieldErr(yrEl,  true);
-        showErr('err-date', true); hasError = true;
+        if (!day || day < 1 || day > 31) setFieldErr(dayEl, true);
+        if (!month || month < 1 || month > 12) setFieldErr(monEl, true);
+        if (!year || year < 2024 || year > 2099) setFieldErr(yrEl, true);
+        showErr('err-date', true);
+        hasError = true;
       }
 
       if (!currentHv) {
         document.getElementById('hv-scroll').classList.add('hv-error');
-        showErr('err-hv', true); hasError = true;
+        showErr('err-hv', true);
+        hasError = true;
+      }
+
+      const departEl = document.getElementById('depart_mine');
+      if (!departEl.value) {
+        setFieldErr(departEl, true);
+        showErr('err-depart', true);
+        hasError = true;
+      }
+
+      const chauffeurEl = document.getElementById('chauffeur');
+      if (!chauffeurEl.value) {
+        setFieldErr(chauffeurEl, true);
+        showErr('err-chauffeur', true);
+        hasError = true;
       }
 
       const tonEl  = document.getElementById('tonnes');
       const tonnes = parseFloat(String(tonEl.value).replace(',', '.'));
       if (isNaN(tonnes) || tonnes < 20000 || tonnes > 100000) {
-        setFieldErr(tonEl, true); showErr('err-qty', true); hasError = true;
+        setFieldErr(tonEl, true);
+        showErr('err-qty', true);
+        hasError = true;
       }
 
       if (hasError) return null;
 
       return {
-        bon:   bonEl.value.trim(),
+        bon: bonEl.value.trim(),
         day, month, year,
         shift: currentShift,
-        hv:    currentHv,
+        hv: currentHv,
+        depart_mine: departEl.value,
+        chauffeur: chauffeurEl.value,
         tonnes,
-        fid:   params.get('fid') || '',
-        mid:   params.get('mid') || ''
+        fid: params.get('fid') || '',
+        mid: params.get('mid') || ''
       };
     }
 
