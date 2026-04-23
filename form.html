@@ -177,12 +177,17 @@
   </div>
 
   <div class="card">
-    <div class="card-label">👤 Chauffeur</div>
-    <select id="chauffeur" class="field-input">
-      <option value="">Sélectionnez un chauffeur</option>
-    </select>
-    <div class="err-msg" id="err-chauffeur">⚠️ Sélectionnez un chauffeur</div>
+  <div class="card-label">👤 Chauffeur</div>
+  <select id="chauffeur" class="field-input">
+    <option value="">Sélectionnez un chauffeur</option>
+  </select>
+  <div class="err-msg" id="err-chauffeur">⚠️ Sélectionnez un chauffeur</div>
+
+  <div id="new-driver-container" style="display:none; margin-top:8px;">
+    <input type="text" id="new-driver-input" class="field-input" placeholder="Prénom Nom du chauffeur" />
+    <div class="err-msg" id="err-new-driver">⚠️ Veuillez saisir le nom du chauffeur</div>
   </div>
+</div>
 
   <div class="card">
     <div class="card-label">⚖️ Quantité</div>
@@ -194,166 +199,192 @@
 
   <script>
     const tg = window.Telegram.WebApp;
-    tg.ready();
-    tg.expand();
+tg.ready();
+tg.expand();
 
-    const params = new URLSearchParams(window.location.search);
+const params = new URLSearchParams(window.location.search);
 
-    document.getElementById('bon').value         = params.get('bon') || '';
-    document.getElementById('day').value         = params.get('day') || '';
-    document.getElementById('month').value       = params.get('month') || '';
-    document.getElementById('year').value        = params.get('year') || '';
-    document.getElementById('tonnes').value      = params.get('tonnes') || '';
-    document.getElementById('depart_mine').value = params.get('depart_mine') || '';
+document.getElementById('bon').value         = params.get('bon') || '';
+document.getElementById('day').value         = params.get('day') || '';
+document.getElementById('month').value       = params.get('month') || '';
+document.getElementById('year').value        = params.get('year') || '';
+document.getElementById('tonnes').value      = params.get('tonnes') || '';
+document.getElementById('depart_mine').value = params.get('depart_mine') || '';
 
-    const chauffeurSelect = document.getElementById('chauffeur');
-    const driversParam = params.get('drivers') || '';
-    let drivers = [];
+const chauffeurSelect = document.getElementById('chauffeur');
+const driversParam = params.get('drivers') || '';
+let drivers = [];
 
-    try {
-      drivers = JSON.parse(decodeURIComponent(driversParam));
-      if (!Array.isArray(drivers)) drivers = [];
-    } catch (e) {
-      drivers = [];
+try {
+  drivers = JSON.parse(decodeURIComponent(driversParam));
+  if (!Array.isArray(drivers)) drivers = [];
+} catch (e) {
+  drivers = [];
+}
+
+drivers
+  .filter(name => typeof name === 'string' && name.trim())
+  .forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name.trim();
+    opt.textContent = name.trim();
+    chauffeurSelect.appendChild(opt);
+  });
+
+const addOpt = document.createElement('option');
+addOpt.value = '__nouveau__';
+addOpt.textContent = '➕ Ajouter un chauffeur';
+chauffeurSelect.appendChild(addOpt);
+
+chauffeurSelect.value = params.get('chauffeur') || '';
+
+let currentShift = params.get('shift') || 'day';
+function setShift(val) {
+  currentShift = val;
+  document.getElementById('btn-day').classList.toggle('active', val === 'day');
+  document.getElementById('btn-night').classList.toggle('active', val === 'night');
+}
+setShift(currentShift);
+
+const hvList = ['HV-01','HV-02','HV-03','HV-04','HV-05','HV-06','HV-07','HV-08','HV-09','HV-10'];
+let currentHv = params.get('hv') || '';
+const scroll  = document.getElementById('hv-scroll');
+hvList.forEach(hv => {
+  const chip = document.createElement('div');
+  chip.className = 'hv-chip' + (hv === currentHv ? ' active' : '');
+  chip.textContent = hv;
+  chip.onclick = () => {
+    currentHv = hv;
+    scroll.querySelectorAll('.hv-chip').forEach(c => c.classList.toggle('active', c.textContent === hv));
+    scroll.querySelector('.hv-chip.active')?.scrollIntoView({ inline: 'center', behavior: 'smooth' });
+    document.getElementById('hv-scroll').classList.remove('hv-error');
+    showErr('err-hv', false);
+  };
+  scroll.appendChild(chip);
+});
+const activeChip = scroll.querySelector('.hv-chip.active');
+if (activeChip) activeChip.scrollIntoView({ inline: 'center', behavior: 'instant' });
+
+function showErr(id, show) { document.getElementById(id).classList.toggle('visible', show); }
+function setFieldErr(el, show) { el.classList.toggle('error', show); }
+function clearAll() {
+  document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
+  document.querySelectorAll('.err-msg').forEach(el => el.classList.remove('visible'));
+  document.getElementById('hv-scroll').classList.remove('hv-error');
+}
+
+['bon','day','month','year','tonnes','depart_mine'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    document.getElementById(id).classList.remove('error');
+    const errId = id === 'tonnes' ? 'err-qty'
+      : id === 'bon' ? 'err-bon'
+      : id === 'depart_mine' ? 'err-depart'
+      : 'err-date';
+    showErr(errId, false);
+  });
+});
+
+chauffeurSelect.addEventListener('change', () => {
+  chauffeurSelect.classList.remove('error');
+  showErr('err-chauffeur', false);
+  const isNew = chauffeurSelect.value === '__nouveau__';
+  document.getElementById('new-driver-container').style.display = isNew ? 'block' : 'none';
+  if (!isNew) {
+    document.getElementById('new-driver-input').value = '';
+    showErr('err-new-driver', false);
+  }
+});
+
+document.getElementById('new-driver-input').addEventListener('input', () => {
+  document.getElementById('new-driver-input').classList.remove('error');
+  showErr('err-new-driver', false);
+});
+
+function validate() {
+  clearAll();
+  let hasError = false;
+
+  const bonEl = document.getElementById('bon');
+  if (!bonEl.value.trim()) {
+    setFieldErr(bonEl, true);
+    showErr('err-bon', true);
+    hasError = true;
+  }
+
+  const dayEl = document.getElementById('day');
+  const monEl = document.getElementById('month');
+  const yrEl  = document.getElementById('year');
+  const day   = parseInt(dayEl.value, 10);
+  const month = parseInt(monEl.value, 10);
+  const year  = parseInt(yrEl.value, 10);
+  if (!(day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 2026 && year <= 2099)) {
+    if (!day || day < 1 || day > 31) setFieldErr(dayEl, true);
+    if (!month || month < 1 || month > 12) setFieldErr(monEl, true);
+    if (!year || year < 2026 || year > 2099) setFieldErr(yrEl, true);
+    showErr('err-date', true);
+    hasError = true;
+  }
+
+  if (!currentHv) {
+    document.getElementById('hv-scroll').classList.add('hv-error');
+    showErr('err-hv', true);
+    hasError = true;
+  }
+
+  const departEl = document.getElementById('depart_mine');
+  if (!departEl.value) {
+    setFieldErr(departEl, true);
+    showErr('err-depart', true);
+    hasError = true;
+  }
+
+  const chauffeurEl  = document.getElementById('chauffeur');
+  const newDriverEl  = document.getElementById('new-driver-input');
+  let chauffeurValue = chauffeurEl.value;
+
+  if (!chauffeurEl.value) {
+    setFieldErr(chauffeurEl, true);
+    showErr('err-chauffeur', true);
+    hasError = true;
+  } else if (chauffeurEl.value === '__nouveau__') {
+    chauffeurValue = newDriverEl.value.trim();
+    if (!chauffeurValue) {
+      setFieldErr(newDriverEl, true);
+      showErr('err-new-driver', true);
+      hasError = true;
     }
+  }
 
-    drivers
-      .filter(name => typeof name === 'string' && name.trim())
-      .forEach(name => {
-        const opt = document.createElement('option');
-        opt.value = name.trim();
-        opt.textContent = name.trim();
-        chauffeurSelect.appendChild(opt);
-      });
+  const tonEl  = document.getElementById('tonnes');
+  const tonnes = parseFloat(String(tonEl.value).replace(',', '.'));
+  if (isNaN(tonnes) || tonnes < 20000 || tonnes > 100000) {
+    setFieldErr(tonEl, true);
+    showErr('err-qty', true);
+    hasError = true;
+  }
 
-    chauffeurSelect.value = params.get('chauffeur') || '';
+  if (hasError) return null;
 
-    let currentShift = params.get('shift') || 'day';
-    function setShift(val) {
-      currentShift = val;
-      document.getElementById('btn-day').classList.toggle('active', val === 'day');
-      document.getElementById('btn-night').classList.toggle('active', val === 'night');
-    }
-    setShift(currentShift);
+  return {
+    bon: bonEl.value.trim(),
+    day, month, year,
+    shift: currentShift,
+    hv: currentHv,
+    depart_mine: departEl.value,
+    chauffeur: chauffeurValue,
+    tonnes,
+    fid: params.get('fid') || '',
+    mid: params.get('mid') || '',
+    group_id: params.get('group_id') || ''
+  };
+}
 
-    const hvList = ['HV-01','HV-02','HV-03','HV-04','HV-05','HV-06','HV-07','HV-08','HV-09','HV-10'];
-    let currentHv = params.get('hv') || '';
-    const scroll  = document.getElementById('hv-scroll');
-    hvList.forEach(hv => {
-      const chip = document.createElement('div');
-      chip.className = 'hv-chip' + (hv === currentHv ? ' active' : '');
-      chip.textContent = hv;
-      chip.onclick = () => {
-        currentHv = hv;
-        scroll.querySelectorAll('.hv-chip').forEach(c => c.classList.toggle('active', c.textContent === hv));
-        scroll.querySelector('.hv-chip.active')?.scrollIntoView({ inline: 'center', behavior: 'smooth' });
-        document.getElementById('hv-scroll').classList.remove('hv-error');
-        showErr('err-hv', false);
-      };
-      scroll.appendChild(chip);
-    });
-    const activeChip = scroll.querySelector('.hv-chip.active');
-    if (activeChip) activeChip.scrollIntoView({ inline: 'center', behavior: 'instant' });
-
-    function showErr(id, show) { document.getElementById(id).classList.toggle('visible', show); }
-    function setFieldErr(el, show) { el.classList.toggle('error', show); }
-    function clearAll() {
-      document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
-      document.querySelectorAll('.err-msg').forEach(el => el.classList.remove('visible'));
-      document.getElementById('hv-scroll').classList.remove('hv-error');
-    }
-
-    ['bon','day','month','year','tonnes','depart_mine'].forEach(id => {
-      document.getElementById(id).addEventListener('input', () => {
-        document.getElementById(id).classList.remove('error');
-        const errId = id === 'tonnes' ? 'err-qty'
-          : id === 'bon' ? 'err-bon'
-          : id === 'depart_mine' ? 'err-depart'
-          : 'err-date';
-        showErr(errId, false);
-      });
-    });
-
-    chauffeurSelect.addEventListener('change', () => {
-      chauffeurSelect.classList.remove('error');
-      showErr('err-chauffeur', false);
-    });
-
-    function validate() {
-      clearAll();
-      let hasError = false;
-
-      const bonEl = document.getElementById('bon');
-      if (!bonEl.value.trim()) {
-        setFieldErr(bonEl, true);
-        showErr('err-bon', true);
-        hasError = true;
-      }
-
-      const dayEl = document.getElementById('day');
-      const monEl = document.getElementById('month');
-      const yrEl  = document.getElementById('year');
-      const day   = parseInt(dayEl.value, 10);
-      const month = parseInt(monEl.value, 10);
-      const year  = parseInt(yrEl.value, 10);
-      if (!(day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 2024 && year <= 2099)) {
-        if (!day || day < 1 || day > 31) setFieldErr(dayEl, true);
-        if (!month || month < 1 || month > 12) setFieldErr(monEl, true);
-        if (!year || year < 2024 || year > 2099) setFieldErr(yrEl, true);
-        showErr('err-date', true);
-        hasError = true;
-      }
-
-      if (!currentHv) {
-        document.getElementById('hv-scroll').classList.add('hv-error');
-        showErr('err-hv', true);
-        hasError = true;
-      }
-
-      const departEl = document.getElementById('depart_mine');
-      if (!departEl.value) {
-        setFieldErr(departEl, true);
-        showErr('err-depart', true);
-        hasError = true;
-      }
-
-      const chauffeurEl = document.getElementById('chauffeur');
-      if (!chauffeurEl.value) {
-        setFieldErr(chauffeurEl, true);
-        showErr('err-chauffeur', true);
-        hasError = true;
-      }
-
-      const tonEl  = document.getElementById('tonnes');
-      const tonnes = parseFloat(String(tonEl.value).replace(',', '.'));
-      if (isNaN(tonnes) || tonnes < 20000 || tonnes > 100000) {
-        setFieldErr(tonEl, true);
-        showErr('err-qty', true);
-        hasError = true;
-      }
-
-      if (hasError) return null;
-
-      return {
-        bon: bonEl.value.trim(),
-        day, month, year,
-        shift: currentShift,
-        hv: currentHv,
-        depart_mine: departEl.value,
-        chauffeur: chauffeurEl.value,
-        tonnes,
-        fid: params.get('fid') || '',
-        mid: params.get('mid') || '',
-        group_id: params.get('group_id') || '' 
-      };
-    }
-
-    tg.MainButton.setText('✅  Confirmer').show();
-    tg.MainButton.onClick(function () {
-      const data = validate();
-      if (!data) return;
-      tg.sendData(JSON.stringify(data));
-    });
+tg.MainButton.setText('✅  Confirmer').show();
+tg.MainButton.onClick(function () {
+  const data = validate();
+  if (!data) return;
+  tg.sendData(JSON.stringify(data));
+});
   </script>
 </body>
 </html>
