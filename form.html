@@ -49,17 +49,6 @@
     .field-input::placeholder { color: var(--hint); font-weight: 400; }
     .field-input.error { border-color: #ff3b30 !important; }
 
-    select.field-input {
-      appearance: none;
-      -webkit-appearance: none;
-      -moz-appearance: none;
-      background-image: linear-gradient(45deg, transparent 50%, var(--hint) 50%), linear-gradient(135deg, var(--hint) 50%, transparent 50%);
-      background-position: calc(100% - 18px) calc(50% - 3px), calc(100% - 12px) calc(50% - 3px);
-      background-size: 6px 6px, 6px 6px;
-      background-repeat: no-repeat;
-      padding-right: 34px;
-    }
-
     /* Date */
     .date-row { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 8px; }
     .date-cell { display: flex; flex-direction: column; gap: 5px; }
@@ -106,6 +95,28 @@
     }
     .hv-chip.active { background: var(--btn); color: var(--btnT); border-color: var(--btn); }
     .hv-error { border: 2px solid #ff3b30; border-radius: 12px; padding: 4px; margin-top: -4px; }
+
+    /* Autocomplete chauffeur */
+    .autocomplete-wrap { position: relative; }
+    .autocomplete-list {
+      position: absolute; left: 0; right: 0; top: calc(100% + 6px);
+      background: var(--bg); border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.2);
+      max-height: 220px; overflow-y: auto;
+      z-index: 200; display: none;
+      scrollbar-width: none;
+    }
+    .autocomplete-list::-webkit-scrollbar { display: none; }
+    .autocomplete-list.open { display: block; }
+    .autocomplete-item {
+      padding: 13px 16px; font-size: 0.98rem; font-weight: 500;
+      cursor: pointer; color: var(--text);
+      border-bottom: 1px solid var(--bg2);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .autocomplete-item:last-child { border-bottom: none; }
+    .autocomplete-item:active { background: var(--bg2); }
+    .autocomplete-item.add-new { color: var(--btn); font-weight: 700; }
 
     /* Erreurs inline */
     .err-msg {
@@ -177,17 +188,14 @@
   </div>
 
   <div class="card">
-  <div class="card-label">👤 Chauffeur</div>
-  <select id="chauffeur" class="field-input">
-    <option value="">Sélectionnez un chauffeur</option>
-  </select>
-  <div class="err-msg" id="err-chauffeur">⚠️ Sélectionnez un chauffeur</div>
-
-  <div id="new-driver-container" style="display:none; margin-top:8px;">
-    <input type="text" id="new-driver-input" class="field-input" placeholder="Prénom Nom du chauffeur" />
-    <div class="err-msg" id="err-new-driver">⚠️ Veuillez saisir le nom du chauffeur</div>
+    <div class="card-label">👤 Chauffeur</div>
+    <div class="autocomplete-wrap">
+      <input type="text" id="chauffeur-input" class="field-input"
+             placeholder="Rechercher ou saisir un chauffeur…" autocomplete="off">
+      <div class="autocomplete-list" id="chauffeur-list"></div>
+    </div>
+    <div class="err-msg" id="err-chauffeur">⚠️ Sélectionnez ou saisissez un chauffeur</div>
   </div>
-</div>
 
   <div class="card">
     <div class="card-label">⚖️ Quantité</div>
@@ -199,204 +207,213 @@
 
   <script>
     const tg = window.Telegram.WebApp;
-tg.ready();
-tg.expand();
+    tg.ready();
+    tg.expand();
 
-const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(window.location.search);
 
-document.getElementById('bon').value         = params.get('bon') || '';
-document.getElementById('day').value         = params.get('day') || '';
-document.getElementById('month').value       = params.get('month') || '';
-document.getElementById('year').value        = params.get('year') || '';
-document.getElementById('tonnes').value      = params.get('tonnes') || '';
-document.getElementById('depart_mine').value = params.get('depart_mine') || '';
+    document.getElementById('bon').value         = params.get('bon') || '';
+    document.getElementById('day').value         = params.get('day') || '';
+    document.getElementById('month').value       = params.get('month') || '';
+    document.getElementById('year').value        = params.get('year') || '';
+    document.getElementById('tonnes').value      = params.get('tonnes') || '';
+    document.getElementById('depart_mine').value = params.get('depart_mine') || '';
 
-const chauffeurSelect = document.getElementById('chauffeur');
-const driversParam = params.get('drivers') || '';
-let drivers = [];
+    // --- Drivers ---
+    const driversParam = params.get('drivers') || '';
+    let drivers = [];
+    try {
+      drivers = JSON.parse(decodeURIComponent(driversParam));
+      if (!Array.isArray(drivers)) drivers = [];
+    } catch(e) { drivers = []; }
 
-try {
-  drivers = JSON.parse(decodeURIComponent(driversParam));
-  if (!Array.isArray(drivers)) drivers = [];
-} catch (e) {
-  drivers = [];
-}
+    let chauffeurValue = params.get('chauffeur') || '';
+    const chauffeurInput = document.getElementById('chauffeur-input');
+    const chauffeurList  = document.getElementById('chauffeur-list');
+    chauffeurInput.value = chauffeurValue;
 
-drivers
-  .filter(name => typeof name === 'string' && name.trim())
-  .forEach(name => {
-    const opt = document.createElement('option');
-    opt.value = name.trim();
-    opt.textContent = name.trim();
-    chauffeurSelect.appendChild(opt);
-  });
-
-const addOpt = document.createElement('option');
-addOpt.value = '__nouveau__';
-addOpt.textContent = '➕ Ajouter un chauffeur';
-chauffeurSelect.appendChild(addOpt);
-
-chauffeurSelect.value = params.get('chauffeur') || '';
-
-let currentShift = params.get('shift') || 'day';
-function setShift(val) {
-  currentShift = val;
-  document.getElementById('btn-day').classList.toggle('active', val === 'day');
-  document.getElementById('btn-night').classList.toggle('active', val === 'night');
-}
-setShift(currentShift);
-
-// APRÈS (dynamique depuis le sheet)
-let trucks = [];
-try {
-  trucks = JSON.parse(decodeURIComponent(params.get('trucks') || '[]'));
-  if (!Array.isArray(trucks)) trucks = [];
-} catch(e) { trucks = []; }
-
-let currentHv = params.get('hv') || '';
-const scroll  = document.getElementById('hv-scroll');
-
-trucks.forEach(({ registration, hv }) => {
-  const chip = document.createElement('div');
-  chip.className = 'hv-chip' + (registration === currentHv ? ' active' : '');
-  chip.textContent = hv + ' – ' + registration;   // ex: "HV01 – BI-9170"
-  chip.dataset.value = registration;               // on stocke la registration
-  chip.onclick = () => {
-    currentHv = registration;
-    scroll.querySelectorAll('.hv-chip').forEach(c =>
-      c.classList.toggle('active', c.dataset.value === registration)
-    );
-    scroll.querySelector('.hv-chip.active')?.scrollIntoView({ inline: 'center', behavior: 'smooth' });
-    document.getElementById('hv-scroll').classList.remove('hv-error');
-    showErr('err-hv', false);
-  };
-  scroll.appendChild(chip);
-});
-
-const activeChip = scroll.querySelector('.hv-chip.active');
-if (activeChip) activeChip.scrollIntoView({ inline: 'center', behavior: 'instant' });
-
-
-function showErr(id, show) { document.getElementById(id).classList.toggle('visible', show); }
-function setFieldErr(el, show) { el.classList.toggle('error', show); }
-function clearAll() {
-  document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
-  document.querySelectorAll('.err-msg').forEach(el => el.classList.remove('visible'));
-  document.getElementById('hv-scroll').classList.remove('hv-error');
-}
-
-['bon','day','month','year','tonnes','depart_mine'].forEach(id => {
-  document.getElementById(id).addEventListener('input', () => {
-    document.getElementById(id).classList.remove('error');
-    const errId = id === 'tonnes' ? 'err-qty'
-      : id === 'bon' ? 'err-bon'
-      : id === 'depart_mine' ? 'err-depart'
-      : 'err-date';
-    showErr(errId, false);
-  });
-});
-
-chauffeurSelect.addEventListener('change', () => {
-  chauffeurSelect.classList.remove('error');
-  showErr('err-chauffeur', false);
-  const isNew = chauffeurSelect.value === '__nouveau__';
-  document.getElementById('new-driver-container').style.display = isNew ? 'block' : 'none';
-  if (!isNew) {
-    document.getElementById('new-driver-input').value = '';
-    showErr('err-new-driver', false);
-  }
-});
-
-document.getElementById('new-driver-input').addEventListener('input', () => {
-  document.getElementById('new-driver-input').classList.remove('error');
-  showErr('err-new-driver', false);
-});
-
-function validate() {
-  clearAll();
-  let hasError = false;
-
-  const bonEl = document.getElementById('bon');
-  if (!bonEl.value.trim()) {
-    setFieldErr(bonEl, true);
-    showErr('err-bon', true);
-    hasError = true;
-  }
-
-  const dayEl = document.getElementById('day');
-  const monEl = document.getElementById('month');
-  const yrEl  = document.getElementById('year');
-  const day   = parseInt(dayEl.value, 10);
-  const month = parseInt(monEl.value, 10);
-  const year  = parseInt(yrEl.value, 10);
-  if (!(day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 2026 && year <= 2099)) {
-    if (!day || day < 1 || day > 31) setFieldErr(dayEl, true);
-    if (!month || month < 1 || month > 12) setFieldErr(monEl, true);
-    if (!year || year < 2026 || year > 2099) setFieldErr(yrEl, true);
-    showErr('err-date', true);
-    hasError = true;
-  }
-
-  if (!currentHv) {
-    document.getElementById('hv-scroll').classList.add('hv-error');
-    showErr('err-hv', true);
-    hasError = true;
-  }
-
-  const departEl = document.getElementById('depart_mine');
-  if (!departEl.value) {
-    setFieldErr(departEl, true);
-    showErr('err-depart', true);
-    hasError = true;
-  }
-
-  const chauffeurEl  = document.getElementById('chauffeur');
-  const newDriverEl  = document.getElementById('new-driver-input');
-  let chauffeurValue = chauffeurEl.value;
-
-  if (!chauffeurEl.value) {
-    setFieldErr(chauffeurEl, true);
-    showErr('err-chauffeur', true);
-    hasError = true;
-  } else if (chauffeurEl.value === '__nouveau__') {
-    chauffeurValue = newDriverEl.value.trim();
-    if (!chauffeurValue) {
-      setFieldErr(newDriverEl, true);
-      showErr('err-new-driver', true);
-      hasError = true;
+    function renderList(query) {
+      const q = query.trim().toLowerCase();
+      const matches = q
+        ? drivers.filter(d => d.toLowerCase().startsWith(q))
+        : [...drivers];
+      chauffeurList.innerHTML = '';
+      matches.forEach(name => {
+        const item = document.createElement('div');
+        item.className = 'autocomplete-item';
+        item.textContent = name;
+        item.onmousedown = (e) => { e.preventDefault(); selectDriver(name); };
+        chauffeurList.appendChild(item);
+      });
+      const addItem = document.createElement('div');
+      addItem.className = 'autocomplete-item add-new';
+      const typed = chauffeurInput.value.trim();
+      addItem.textContent = typed ? `➕ Ajouter "${typed}"` : '➕ Ajouter un nouveau chauffeur';
+      addItem.onmousedown = (e) => {
+        e.preventDefault();
+        const newName = chauffeurInput.value.trim();
+        if (newName) selectDriver(newName);
+      };
+      chauffeurList.appendChild(addItem);
+      chauffeurList.classList.add('open');
     }
-  }
 
-  const tonEl  = document.getElementById('tonnes');
-  const tonnes = parseFloat(String(tonEl.value).replace(',', '.'));
-  if (isNaN(tonnes) || tonnes < 20000 || tonnes > 100000) {
-    setFieldErr(tonEl, true);
-    showErr('err-qty', true);
-    hasError = true;
-  }
+    function selectDriver(name) {
+      chauffeurValue = name;
+      chauffeurInput.value = name;
+      chauffeurList.classList.remove('open');
+      chauffeurInput.classList.remove('error');
+      showErr('err-chauffeur', false);
+    }
 
-  if (hasError) return null;
+    chauffeurInput.addEventListener('focus', () => renderList(chauffeurInput.value));
+    chauffeurInput.addEventListener('input', () => {
+      chauffeurValue = '';
+      renderList(chauffeurInput.value);
+      chauffeurInput.classList.remove('error');
+      showErr('err-chauffeur', false);
+    });
+    chauffeurInput.addEventListener('blur', () => {
+      setTimeout(() => chauffeurList.classList.remove('open'), 150);
+      if (chauffeurInput.value.trim() && !chauffeurValue) {
+        chauffeurValue = chauffeurInput.value.trim();
+      }
+    });
 
-  return {
-    bon: bonEl.value.trim(),
-    day, month, year,
-    shift: currentShift,
-    hv: currentHv,
-    depart_mine: departEl.value,
-    chauffeur: chauffeurValue,
-    tonnes,
-    fid: params.get('fid') || '',
-    mid: params.get('mid') || '',
-    group_id: params.get('group_id') || ''
-  };
-}
+    // --- Shift ---
+    let currentShift = params.get('shift') || 'day';
+    function setShift(val) {
+      currentShift = val;
+      document.getElementById('btn-day').classList.toggle('active', val === 'day');
+      document.getElementById('btn-night').classList.toggle('active', val === 'night');
+    }
+    setShift(currentShift);
 
-tg.MainButton.setText('✅  Confirmer').show();
-tg.MainButton.onClick(function () {
-  const data = validate();
-  if (!data) return;
-  tg.sendData(JSON.stringify(data));
-});
+    // --- Trucks / HV ---
+    let trucks = [];
+    try {
+      trucks = JSON.parse(decodeURIComponent(params.get('trucks') || '[]'));
+      if (!Array.isArray(trucks)) trucks = [];
+    } catch(e) { trucks = []; }
+
+    let currentHv = params.get('hv') || '';
+    const scroll  = document.getElementById('hv-scroll');
+
+    trucks.forEach(({ registration, hv }) => {
+      const chip = document.createElement('div');
+      chip.className = 'hv-chip' + (registration === currentHv ? ' active' : '');
+      chip.textContent = hv + ' – ' + registration;
+      chip.dataset.value = registration;
+      chip.onclick = () => {
+        currentHv = registration;
+        scroll.querySelectorAll('.hv-chip').forEach(c =>
+          c.classList.toggle('active', c.dataset.value === registration)
+        );
+        scroll.querySelector('.hv-chip.active')?.scrollIntoView({ inline: 'center', behavior: 'smooth' });
+        document.getElementById('hv-scroll').classList.remove('hv-error');
+        showErr('err-hv', false);
+      };
+      scroll.appendChild(chip);
+    });
+
+    const activeChip = scroll.querySelector('.hv-chip.active');
+    if (activeChip) activeChip.scrollIntoView({ inline: 'center', behavior: 'instant' });
+
+    // --- Helpers ---
+    function showErr(id, show) { document.getElementById(id).classList.toggle('visible', show); }
+    function setFieldErr(el, show) { el.classList.toggle('error', show); }
+    function clearAll() {
+      document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
+      document.querySelectorAll('.err-msg').forEach(el => el.classList.remove('visible'));
+      document.getElementById('hv-scroll').classList.remove('hv-error');
+    }
+
+    ['bon','day','month','year','tonnes','depart_mine'].forEach(id => {
+      document.getElementById(id).addEventListener('input', () => {
+        document.getElementById(id).classList.remove('error');
+        const errId = id === 'tonnes' ? 'err-qty'
+          : id === 'bon' ? 'err-bon'
+          : id === 'depart_mine' ? 'err-depart'
+          : 'err-date';
+        showErr(errId, false);
+      });
+    });
+
+    // --- Validation ---
+    function validate() {
+      clearAll();
+      let hasError = false;
+
+      const bonEl = document.getElementById('bon');
+      if (!bonEl.value.trim()) {
+        setFieldErr(bonEl, true);
+        showErr('err-bon', true);
+        hasError = true;
+      }
+
+      const dayEl = document.getElementById('day');
+      const monEl = document.getElementById('month');
+      const yrEl  = document.getElementById('year');
+      const day   = parseInt(dayEl.value, 10);
+      const month = parseInt(monEl.value, 10);
+      const year  = parseInt(yrEl.value, 10);
+      if (!(day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 2026 && year <= 2099)) {
+        if (!day || day < 1 || day > 31) setFieldErr(dayEl, true);
+        if (!month || month < 1 || month > 12) setFieldErr(monEl, true);
+        if (!year || year < 2026 || year > 2099) setFieldErr(yrEl, true);
+        showErr('err-date', true);
+        hasError = true;
+      }
+
+      if (!currentHv) {
+        document.getElementById('hv-scroll').classList.add('hv-error');
+        showErr('err-hv', true);
+        hasError = true;
+      }
+
+      const departEl = document.getElementById('depart_mine');
+      if (!departEl.value) {
+        setFieldErr(departEl, true);
+        showErr('err-depart', true);
+        hasError = true;
+      }
+
+      if (!chauffeurValue.trim()) {
+        setFieldErr(chauffeurInput, true);
+        showErr('err-chauffeur', true);
+        hasError = true;
+      }
+
+      const tonEl  = document.getElementById('tonnes');
+      const tonnes = parseFloat(String(tonEl.value).replace(',', '.'));
+      if (isNaN(tonnes) || tonnes < 20000 || tonnes > 100000) {
+        setFieldErr(tonEl, true);
+        showErr('err-qty', true);
+        hasError = true;
+      }
+
+      if (hasError) return null;
+
+      return {
+        bon: bonEl.value.trim(),
+        day, month, year,
+        shift: currentShift,
+        hv: currentHv,
+        depart_mine: departEl.value,
+        chauffeur: chauffeurValue.trim(),
+        tonnes,
+        fid: params.get('fid') || '',
+        mid: params.get('mid') || '',
+        group_id: params.get('group_id') || ''
+      };
+    }
+
+    tg.MainButton.setText('✅  Confirmer').show();
+    tg.MainButton.onClick(function () {
+      const data = validate();
+      if (!data) return;
+      tg.sendData(JSON.stringify(data));
+    });
   </script>
 </body>
 </html>
