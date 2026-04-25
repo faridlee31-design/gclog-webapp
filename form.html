@@ -246,22 +246,35 @@ function setShift(val) {
 }
 setShift(currentShift);
 
-const hvList = ['HV-01','HV-02','HV-03','HV-04','HV-05','HV-06','HV-07','HV-08','HV-09','HV-10'];
+// APRÈS (dynamique depuis le sheet)
+let trucks = [];
+try {
+  trucks = JSON.parse(decodeURIComponent(params.get('trucks') || '[]'));
+  if (!Array.isArray(trucks)) trucks = [];
+} catch(e) { trucks = []; }
+
 let currentHv = params.get('hv') || '';
 const scroll  = document.getElementById('hv-scroll');
-hvList.forEach(hv => {
+
+trucks.forEach(({ registration, hv }) => {
   const chip = document.createElement('div');
-  chip.className = 'hv-chip' + (hv === currentHv ? ' active' : '');
-  chip.textContent = hv;
+  chip.className = 'hv-chip' + (registration === currentHv ? ' active' : '');
+  chip.textContent = hv + ' – ' + registration;   // ex: "HV01 – BI-9170"
+  chip.dataset.value = registration;               // on stocke la registration
   chip.onclick = () => {
-    currentHv = hv;
-    scroll.querySelectorAll('.hv-chip').forEach(c => c.classList.toggle('active', c.textContent === hv));
+    currentHv = registration;
+    scroll.querySelectorAll('.hv-chip').forEach(c =>
+      c.classList.toggle('active', c.dataset.value === registration)
+    );
     scroll.querySelector('.hv-chip.active')?.scrollIntoView({ inline: 'center', behavior: 'smooth' });
     document.getElementById('hv-scroll').classList.remove('hv-error');
     showErr('err-hv', false);
   };
   scroll.appendChild(chip);
 });
+
+const activeChip = scroll.querySelector('.hv-chip.active');
+if (activeChip) activeChip.scrollIntoView({ inline: 'center', behavior: 'instant' });
 const activeChip = scroll.querySelector('.hv-chip.active');
 if (activeChip) activeChip.scrollIntoView({ inline: 'center', behavior: 'instant' });
 
