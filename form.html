@@ -275,8 +275,7 @@ trucks.forEach(({ registration, hv }) => {
 
 const activeChip = scroll.querySelector('.hv-chip.active');
 if (activeChip) activeChip.scrollIntoView({ inline: 'center', behavior: 'instant' });
-const activeChip = scroll.querySelector('.hv-chip.active');
-if (activeChip) activeChip.scrollIntoView({ inline: 'center', behavior: 'instant' });
+
 
 function showErr(id, show) { document.getElementById(id).classList.toggle('visible', show); }
 function setFieldErr(el, show) { el.classList.toggle('error', show); }
