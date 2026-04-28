@@ -372,10 +372,27 @@
       }
 
       const departEl = document.getElementById('depart_mine');
+      const errDepartEl = document.getElementById('err-depart');
       if (!departEl.value) {
         setFieldErr(departEl, true);
+        errDepartEl.textContent = '⚠️ Heure de départ requise';
         showErr('err-depart', true);
         hasError = true;
+      } else {
+        const [h, m] = departEl.value.split(':').map(Number);
+        const mins = h * 60 + m;
+        const isDayTime = mins >= 7 * 60 && mins < 19 * 60;
+        if (currentShift === 'day' && !isDayTime) {
+          setFieldErr(departEl, true);
+          errDepartEl.textContent = '⚠️ Heure incompatible avec le shift Jour (7h – 19h)';
+          showErr('err-depart', true);
+          hasError = true;
+        } else if (currentShift === 'night' && isDayTime) {
+          setFieldErr(departEl, true);
+          errDepartEl.textContent = '⚠️ Heure incompatible avec le shift Nuit (19h – 7h)';
+          showErr('err-depart', true);
+          hasError = true;
+        }
       }
 
       if (!chauffeurValue.trim()) {
