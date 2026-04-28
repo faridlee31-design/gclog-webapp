@@ -296,7 +296,8 @@
       if (!Array.isArray(trucks)) trucks = [];
     } catch(e) { trucks = []; }
 
-    let currentHv = params.get('hv') || '';
+    let currentHv     = params.get('hv') || '';
+    let currentHvName = params.get('hv_name') || '';
     const scroll  = document.getElementById('hv-scroll');
 
     trucks.forEach(({ registration, hv }) => {
@@ -304,8 +305,10 @@
       chip.className = 'hv-chip' + (registration === currentHv ? ' active' : '');
       chip.textContent = hv + ' – ' + registration;
       chip.dataset.value = registration;
+      chip.dataset.hv    = hv;
       chip.onclick = () => {
-        currentHv = registration;
+        currentHv     = registration;
+        currentHvName = hv;
         scroll.querySelectorAll('.hv-chip').forEach(c =>
           c.classList.toggle('active', c.dataset.value === registration)
         );
@@ -416,6 +419,7 @@
         day, month, year,
         shift: currentShift,
         hv: currentHv,
+        hv_name: currentHvName,
         depart_mine: departEl.value,
         chauffeur: chauffeurValue.trim(),
         tonnes,
