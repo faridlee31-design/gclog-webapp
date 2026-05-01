@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Quantité</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:   var(--tg-theme-bg-color, #ffffff);
+      --bg2:  var(--tg-theme-secondary-bg-color, #f5f5f5);
+      --text: var(--tg-theme-text-color, #000000);
+      --hint: var(--tg-theme-hint-color, #888888);
+      --btn:  var(--tg-theme-button-color, #007aff);
+      --btnT: var(--tg-theme-button-text-color, #ffffff);
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 32px 24px 96px;
+      gap: 12px;
+    }
+    h2 { font-size: 1.5rem; font-weight: 700; }
+    p  { color: var(--hint); font-size: 0.95rem; text-align: center; }
+    input {
+      font-size: 3rem; font-weight: 700; text-align: center;
+      width: 100%; max-width: 280px; padding: 16px 12px;
+      border: 2px solid var(--hint, #cccccc); border-radius: 16px;
+      background: var(--bg2); color: var(--text);
+      outline: none; margin-top: 12px; -moz-appearance: textfield;
+    }
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button { -webkit-appearance: none; }
+    input:focus { border-color: var(--btn); }
+    .unit { font-size: 1rem; color: var(--hint); margin-top: -4px; }
+
+    #wa-submit-btn {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      height: 56px; background: var(--btn, #007aff); color: var(--btnT, #ffffff);
+      border: none; font-size: 1.05rem; font-weight: 700;
+      cursor: pointer; z-index: 999; letter-spacing: 0.02em;
+      transition: opacity .15s;
+    }
+    #wa-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .success-screen {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; min-height: 100vh; padding: 32px 24px;
+      text-align: center; background: var(--bg2);
+    }
+    .success-screen .icon { font-size: 4rem; margin-bottom: 16px; }
+    .success-screen h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: 8px; }
+    .success-screen p { color: var(--hint); font-size: 0.95rem; }
+  </style>
+</head>
+<body>
+  <h2>⚖️ Quantité</h2>
+  <p>Entrez la quantité transportée</p>
+  <input type="number" id="qty" inputmode="decimal" placeholder="47.5" step="0.5" min="0" autofocus>
+  <span class="unit">tonnes</span>
+
+  <script>
+    const tg = window.Telegram?.WebApp;
+    const isTelegram = !!(tg?.initData);
+
+    if (isTelegram) {
+      tg.ready();
+      tg.expand();
+    }
+
+    const params     = new URLSearchParams(window.location.search);
+    const webhookUrl = params.get('webhook_url')    || '';
+    const waSender   = params.get('wa_sender')      || '';
+    const waGroupId  = params.get('group_id')       || '';
+    const bonId      = params.get('bon')             || '';
+
+    const input = document.getElementById('qty');
+
+    function getQty() {
+      const raw = input.value.replace(',', '.');
+      const qty = parseFloat(raw);
+      if (isNaN(qty) || qty <= 0) return null;
+      return qty;
+    }
+
+    // ── Mode Telegram ────────────────────────────────────────────────────────
+    if (isTelegram) {
+      tg.MainButton.setText('✅  Confirmer').show();
+      tg.MainButton.onClick(function() {
+        const qty = getQty();
+        if (!qty) { tg.showAlert('Veuillez entrer un nombre valide (ex: 47.5)'); return; }
+        tg.sendData(String(qty));
+      });
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') tg.MainButton.click(); });
+    }
+
+    // ── Mode WhatsApp / navigateur standalone ────────────────────────────────
+    if (!isTelegram) {
+      const btn = document.createElement('button');
+      btn.id = 'wa-submit-btn';
+      btn.textContent = '✅  Confirmer';
+      document.body.appendChild(btn);
+
+      async function submit() {
+        const qty = getQty();
+        if (!qty) { alert('Veuillez entrer un nombre valide (ex: 47.5)'); return; }
+        if (!webhookUrl) { alert('Erreur de configuration : URL webhook manquante.'); return; }
+
+        btn.disabled = true;
+        btn.textContent = '⏳ Envoi en cours…';
+
+        try {
+          const res = await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              qty,
+              bon:       bonId,
+              wa_sender: waSender,
+              group_id:  waGroupId
+            })
+          });
+
+          if (res.ok) {
+            document.body.innerHTML = `
+              <div class="success-screen">
+                <div class="icon">✅</div>
+                <h2>Quantité enregistrée !</h2>
+                <p>Vous pouvez fermer cette page.</p>
+              </div>`;
+          } else {
+            throw new Error('Erreur serveur ' + res.status);
+          }
+        } catch(e) {
+          btn.disabled = false;
+          btn.textContent = '✅  Confirmer';
+          alert('Erreur lors de l\'envoi. Réessayez.\n\n' + e.message);
+        }
+      }
+
+      btn.addEventListener('click', submit);
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+    }
+  </script>
+</body>
+</html>
